@@ -21,4 +21,9 @@ It also works as-is on GitHub Pages.
 
 ## Offline version
 
-The `gallery/` folder holds 456 real cat photos (checked by hand) and a page that shows 40 random ones at a time. Shuffle swaps in a new 40. It also has Yarn, a little chat in the corner that answers three cat questions. It works without internet: open `gallery/index.html`.
+The `gallery/` folder works without internet: open `gallery/index.html`. It has two sections:
+
+- **Normal cat photos**: 296 real cat photos, checked by hand
+- **Meme cat photos**: 214 memes, each a real cat photo with a caption written for it
+
+Each section shows 40 random pictures at a time, and Shuffle swaps in a new 40. Yarn, the little chat in the corner, answers three cat questions.

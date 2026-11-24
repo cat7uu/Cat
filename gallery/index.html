@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cat Gallery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap">
 <style>
 /* VOICE: warm, playful, tender — a scrapbook of cats
    IDEA: a corkboard of photo prints pinned at slight angles
@@ -33,10 +33,20 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .print img{display:block;width:100%;height:auto;border-radius:3px}
 .fav{position:absolute;top:14px;right:14px;min-height:40px;min-width:40px;padding:0;border:none;background:rgba(255,255,255,.92);color:#e0662f;font-size:20px;line-height:40px}
 .fav.on{background:#e0662f;color:#fff}
+.print.meme{padding-bottom:50px}.print.meme .fav{top:auto;bottom:5px;right:8px;background:transparent;font-size:24px}.print.meme .fav.on{background:transparent;color:#e0662f}
+.tabs{display:flex;gap:6px;max-width:1400px;margin:0 auto;padding:10px max(4vw,16px) 0;flex-wrap:wrap}
+.tab{border-radius:14px 14px 0 0;border-width:2px 2px 0;min-height:48px;font-size:17px;padding:0 22px;background:transparent}
+.tab.on{background:var(--accent);color:var(--accent-ink)}
+.tabline{max-width:1400px;margin:0 auto;padding:0 max(4vw,16px)}.tabline div{height:3px;background:var(--accent);border-radius:2px}
+.pic{position:relative;container-type:inline-size}
+.cap{position:absolute;left:4%;right:4%;text-align:center;font:400 clamp(13px,9.5cqw,40px)/1.05 Anton,Impact,"Arial Narrow Bold",sans-serif;text-transform:uppercase;color:#fff;-webkit-text-stroke:.09em #000;paint-order:stroke fill;text-shadow:0 0 .12em #000;overflow-wrap:anywhere;pointer-events:none;letter-spacing:.01em}
+.cap.top{top:3%}.cap.bot{bottom:4%}
+.lb{position:relative;display:inline-block;line-height:0}
+.lb .cap{font-size:var(--lbf,32px);line-height:1.05}
 .empty{text-align:center;color:var(--muted);padding:40px 16px;column-span:all}
 .box{position:fixed;inset:0;background:rgba(15,10,8,.94);display:none;align-items:center;justify-content:center;z-index:9;touch-action:pan-y}
 .box.open{display:flex}
-.box img{max-width:94vw;max-height:84vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.box .lb img{max-width:94vw;max-height:84vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
 .box button{position:absolute;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:26px;min-width:52px;min-height:52px;padding:0}
 .box .prev{left:12px;top:50%;transform:translateY(-50%)}
 .box .next{right:12px;top:50%;transform:translateY(-50%)}
@@ -63,7 +73,7 @@ footer a{color:var(--accent)}
 .chips{display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px;border-top:1px solid light-dark(#eee3d8,#3a2f2a)}
 .chips button{min-height:44px;padding:8px 14px;border-radius:14px;text-align:left;font-size:15px;line-height:1.3}
 .chips button:disabled{opacity:.5;cursor:default}
-@media(max-width:600px){header{display:block}.controls{margin-top:14px}.grid{columns:2;column-gap:10px;padding-inline:10px}.print{padding:5px 5px 7px;margin-bottom:10px}.fav{top:10px;right:10px}}
+@media(max-width:600px){.print.meme{padding-bottom:44px}.print.meme .fav{bottom:2px;right:4px}.tab{flex:1;padding:0 8px;font-size:15px}header{display:block}.controls{margin-top:14px}.grid{columns:2;column-gap:10px;padding-inline:10px}.print{padding:5px 5px 7px;margin-bottom:10px}.fav{top:10px;right:10px}}
 @media(max-width:600px){.chat{right:12px;bottom:92px}.yarn{right:12px;bottom:12px}}
 @media(prefers-reduced-motion:reduce){.print,.yarn svg{transition:none}.dots span{animation:none}}
 </style>
@@ -72,17 +82,22 @@ footer a{color:var(--accent)}
 <header>
   <div>
     <h1>Cat Gallery</h1>
-    <p>40 of 456 real cat photos. Tap one to see it big, or Shuffle for new cats.</p>
+    <p id="sub"></p>
   </div>
   <div class="controls">
     <button id="shuffle" class="primary">Shuffle</button>
     <button id="favs" aria-pressed="false">♥ Favorites (<span id="favCount">0</span>)</button>
   </div>
 </header>
+<nav class="tabs" aria-label="Sections">
+  <button id="tabNormal" class="tab on" aria-pressed="true">Normal cat photos</button>
+  <button id="tabMeme" class="tab" aria-pressed="false">Meme cat photos</button>
+</nav>
+<div class="tabline"><div></div></div>
 <main id="grid" class="grid"></main>
 <div id="box" class="box" role="dialog" aria-modal="true" aria-label="Cat photo">
   <button class="prev" aria-label="Previous cat">‹</button>
-  <img id="boxImg" alt="A cat, enlarged">
+  <div class="lb" id="lb"><img id="boxImg" alt="A cat, enlarged"><div class="cap top" id="lbTop"></div><div class="cap bot" id="lbBot"></div></div>
   <button class="next" aria-label="Next cat">›</button>
   <button class="close" aria-label="Close">✕</button>
   <div class="count" id="boxCount"></div>
@@ -108,12 +123,24 @@ footer a{color:var(--accent)}
   <div id="msgs" class="msgs" aria-live="polite"></div>
   <div id="chips" class="chips"></div>
 </section>
-<footer>Photos from <a href="https://thecatapi.com">The Cat API</a>.</footer>
+<footer>Memes made from real cat photos. Photos from <a href="https://thecatapi.com">The Cat API</a>.</footer>
 <script>
 {
-const CATS = ["0THCGrAZj.jpg", "16j.jpg", "1TcC-kiI1.jpg", "1ck.jpg", "1i5.jpg", "1nt.jpg", "1oi.jpg", "1p3.jpg", "1sk.jpg", "264.jpg", "28f.jpg", "28o.jpg", "291.jpg", "29i.jpg", "2bh.jpg", "2ds.jpg", "2ge.jpg", "2iu.jpg", "2k0.jpg", "2m1.jpg", "2mb.jpg", "2mj.jpg", "2n2.jpg", "2re.jpg", "2sd.jpg", "2tf.jpg", "2vu.jpg", "32c.jpg", "35m.jpg", "35q.jpg", "384.jpg", "3ab.jpg", "3av.jpg", "3dv.jpg", "3ep.jpg", "3j4.jpg", "3m3.jpg", "3me.jpg", "3mo.jpg", "447.jpg", "4sr.jpg", "4tp.jpg", "51j.jpg", "598.jpg", "59d.jpg", "5aj.jpg", "5iYq9NmT1.jpg", "5kr.jpg", "5n6.jpg", "5ot.jpg", "5q4.jpg", "5q5.jpg", "5rf.jpg", "5rp.jpg", "5s5.jpg", "5ua.jpg", "5vp.jpg", "6f1.jpg", "6g9.jpg", "6hp.jpg", "6i2.jpg", "6ja.jpg", "6jk.jpg", "6lg.jpg", "6lh.jpg", "6nn.jpg", "6r6.jpg", "6st.jpg", "6tf.jpg", "6uq.jpg", "70c.jpg", "71d.jpg", "73r.jpg", "74m.jpg", "78r.jpg", "793.jpg", "798.jpg", "7Q76qhEAF.jpg", "7bo.jpg", "7hc.jpg", "7hp.jpg", "7jj.jpg", "7kd.jpg", "7kr.jpg", "7lb.jpg", "7nt.jpg", "7ph.jpg", "80kGxlgR1.jpg", "84-HSUBbt.jpg", "88c.jpg", "89p.jpg", "8a4.jpg", "8d5.jpg", "8g8.jpg", "8gm.jpg", "8lu.jpg", "8mn.jpg", "8o4.jpg", "8pg.jpg", "8pv.jpg", "8q6.jpg", "8tj.jpg", "8tk.jpg", "91i.jpg", "93s.jpg", "95g.jpg", "984.jpg", "9ev.jpg", "9f1.jpg", "9fl.jpg", "9i3.jpg", "9ic.jpg", "9jb.jpg", "9l3.jpg", "9l8.jpg", "9p5.jpg", "9q8.jpg", "9qc.jpg", "9ql.jpg", "9qs.jpg", "9r1.jpg", "9u9.jpg", "9ue.jpg", "9ur.jpg", "9v7.jpg", "9vd.jpg", "9vj.jpg", "9vn.jpg", "9vo.jpg", "AllGB9l57.jpg", "BborJBuoW.jpg", "BjTEe8vY2.jpg", "CrZtoDsgj.jpg", "DZba-eH_4.jpg", "DdmsQrCAv.jpg", "HYTJQgs2M.jpg", "HksHrR8-9.jpg", "J4Jv10E7O.jpg", "KLpZzAE_a.jpg", "MTU1NDMzNg.jpg", "MTU1ODMyMQ.jpg", "MTU1ODY2MA.jpg", "MTU2MDcwMw.jpg", "MTU2OTQzNQ.jpg", "MTU3MTg2MQ.jpg", "MTU3NzQ4OA.jpg", "MTU4MTkzNg.jpg", "MTUwMDg4NQ.jpg", "MTUwMTc2MQ.jpg", "MTUwMzI3Mg.jpg", "MTUxMjI4NQ.jpg", "MTUzNDkzMw.jpg", "MTY0Njk3MQ.jpg", "MTY2Nzc2OQ.jpg", "MTY2ODc2Mg.jpg", "MTY3NTM0OA.jpg", "MTY4MjA2MA.jpg", "MTY5NjU4NQ.jpg", "MTYxNTEwNA.jpg", "MTYyNTY0MA.jpg", "MTYzMzQ3NQ.jpg", "MTc0NDI4MQ.jpg", "MTc1NTg5OA.jpg", "MTc1NjgwOQ.jpg", "MTc2NjQ3Ng.jpg", "MTc3MTg4Mg.jpg", "MTc4Mzc3MA.jpg", "MTc4NjYzNA.jpg", "MTc5NTYxNg.jpg", "MTcwNTkyNw.jpg", "MTcyNDU0NA.jpg", "MTczNTM4OQ.jpg", "MTg0MDk2Mw.jpg", "MTg0ODgxNQ.jpg", "MTg1MDU4OQ.jpg", "MTg1NDIwNQ.jpg", "MTg3MDE3MQ.jpg", "MTg3NzE0Mw.jpg", "MTg3NzMwMA.jpg", "MTg4MTUxOA.jpg", "MTgwMTYzNg.jpg", "MTgwNjIwNQ.jpg", "MTgzMzAyOA.jpg", "MTgzMzI1Mw.jpg", "MTgzNjk1Nw.jpg", "MTgzNzY2OA.jpg", "MTk0NzMxNw.jpg", "MTk2NjI0Mw.jpg", "MTk3ODU4MQ.jpg", "MTk4NjA0OQ.jpg", "MTk5NTYyNw.jpg", "MTk5OTUzNg.jpg", "MTkwMDAxMw.jpg", "MTkwMTA4Mw.jpg", "MTkxNDYwMw.jpg", "MTkyMzMzMQ.jpg", "MTkyNzEyOQ.jpg", "MTkzNTY5NA.jpg", "MjA0NDg2Mw.jpg", "MjA1NzA0NQ.jpg", "MjA2MDI2NA.jpg", "MjA4NzAwOQ.jpg", "MjA4Nzc3OA.jpg", "MjAwMzg3Ng.jpg", "MjAxMDc4OA.jpg", "MjAzMTA4Nw.jpg", "N-94oSJ5T.jpg", "NoQGHgPl7.jpg", "O-57OLhn7.jpg", "OCoeP14wW.jpg", "OhTkBTPnD.jpg", "PoZIVJ124.jpg", "RIRLq-8sp.jpg", "Rscv6E1c5.jpg", "Sw_EWWLW-.jpg", "TnwHiS7nO.jpg", "V00qLe4Gw.jpg", "Vb2JphRL3.jpg", "WmBbMJmwn.jpg", "XWqBv4Dnh.jpg", "Znj6KEDRX.jpg", "_GVSjXZ4i.jpg", "_rnhm7vpT.jpg", "a00.jpg", "a12.jpg", "a1s.jpg", "a2l.jpg", "a2u.jpg", "a34.jpg", "a3v.jpg", "a4j.jpg", "a51.jpg", "a66.jpg", "a68.jpg", "a6d.jpg", "a6f.jpg", "a6m.jpg", "a8e.jpg", "a8j.jpg", "a8n.jpg", "a8v.jpg", "a9v.jpg", "aU69p2mTT.jpg", "aav.jpg", "ab3.jpg", "abd.jpg", "abt.jpg", "adl.jpg", "af7.jpg", "afk.jpg", "afm.jpg", "ah6.jpg", "ahp.jpg", "aia.jpg", "aih.jpg", "ajs.jpg", "aju.jpg", "ak0.jpg", "ak7.jpg", "ali.jpg", "aml.jpg", "apf.jpg", "aq3.jpg", "aqr.jpg", "aqs.jpg", "ar3.jpg", "aru.jpg", "as1.jpg", "as8.jpg", "ash.jpg", "asj.jpg", "atk.jpg", "ato.jpg", "au1.jpg", "au2.jpg", "aua.jpg", "aul.jpg", "avr.jpg", "b0b.jpg", "b0d.jpg", "b1j.jpg", "b26.jpg", "b36.jpg", "b3p.jpg", "b41.jpg", "b53.jpg", "b5m.jpg", "b5p.jpg", "b62.jpg", "b66.jpg", "b6j.jpg", "b75.jpg", "b7g.jpg", "b7k.jpg", "b86.jpg", "b88.jpg", "baa.jpg", "bbp.jpg", "bbv.jpg", "bcb.jpg", "bcf.jpg", "bdl.jpg", "bdm.jpg", "bdp.jpg", "bej.jpg", "bet.jpg", "bgr.jpg", "bil.jpg", "bjs.jpg", "bke.jpg", "blp.jpg", "bmp.jpg", "bn9.jpg", "bo2.jpg", "bo3.jpg", "bof.jpg", "bp2.jpg", "bp7.jpg", "bq9.jpg", "bqc.jpg", "bqj.jpg", "brn.jpg", "bth.jpg", "bul.jpg", "c1OwKLEdL.jpg", "c1a.jpg", "c1q.jpg", "c21.jpg", "c2p.jpg", "c3s.jpg", "c5j.jpg", "c8p.jpg", "cd3.jpg", "cds.jpg", "cdu.jpg", "ce6.jpg", "cea.jpg", "cf9.jpg", "cg3.jpg", "cg5.jpg", "cga.jpg", "cgh.jpg", "cgl.jpg", "ch8.jpg", "chh.jpg", "chj.jpg", "ck9.jpg", "ckt.jpg", "cm1.jpg", "cm4.jpg", "cna.jpg", "cnc.jpg", "co0.jpg", "cp4.jpg", "cpb.jpg", "cpe.jpg", "cpk.jpg", "cpu.jpg", "cua3trGPU.jpg", "cv4.jpg", "cv5.jpg", "cvd.jpg", "cvi.jpg", "cvs.jpg", "d1i.jpg", "d45.jpg", "d49.jpg", "d4i.jpg", "d5h.jpg", "d5i.jpg", "d6e.jpg", "d6n.jpg", "d6p.jpg", "d7k.jpg", "d7r.jpg", "d84.jpg", "d99.jpg", "d9t.jpg", "dVujvBqnu.jpg", "daj.jpg", "dbh.jpg", "ddb.jpg", "den.jpg", "dff.jpg", "dhp.jpg", "did.jpg", "dj4.jpg", "djh.jpg", "djm.jpg", "dks.jpg", "dl5.jpg", "dmb.jpg", "dmk.jpg", "dmq.jpg", "dmt.jpg", "dn4GBRons.jpg", "dnm.jpg", "dsa.jpg", "duc.jpg", "dus.jpg", "dv6.jpg", "dvi.jpg", "dvr.jpg", "e09.jpg", "e0a.jpg", "e0sS4bZcP.jpg", "e29.jpg", "e3j.jpg", "e44.jpg", "e6i.jpg", "e70.jpg", "e7n.jpg", "e8q.jpg", "e9c.jpg", "ecv.jpg", "edi.jpg", "ef3.jpg", "ef7.jpg", "efk.jpg", "eft.jpg", "eg7.jpg", "ei1.jpg", "ei6.jpg", "em.jpg", "eo.jpg", "fsEMVl7f5.jpg", "h3ima-Zx3.jpg", "h8.jpg", "hTswm_D5S.jpg", "hi.jpg", "i9HsL15nJ.jpg", "iI8IyNGDg.jpg", "ik.jpg", "j3.jpg", "j8Z2_Alac.jpg", "jd.jpg", "k8.jpg", "kSL4yIF2D.jpg", "lOl0J96On.jpg", "o9t0LDcsa.jpg", "oxh-Aab7c.jpg", "pm.jpg", "q2.jpg", "q95bpC4ct.jpg", "ra.jpg", "s6l9xck-Q.jpg", "se.jpg", "uTG1YFzJV.jpg", "udJaUVCHZ.jpg", "uygraw0_D.jpg", "vVF7hE-Py.jpg", "vd.jpg", "vm.jpg", "wFQIf01uy.jpg", "wiHVRle1m.jpg", "zcErB6rHb.jpg"];
+const CATS = ["0THCGrAZj.jpg", "16j.jpg", "1TcC-kiI1.jpg", "1ck.jpg", "1i5.jpg", "1nt.jpg", "1p3.jpg", "1sk.jpg", "264.jpg", "28f.jpg", "291.jpg", "29i.jpg", "2bh.jpg", "2ds.jpg", "2ge.jpg", "2iu.jpg", "2k0.jpg", "2mj.jpg", "2n2.jpg", "2vu.jpg", "32c.jpg", "35m.jpg", "3ep.jpg", "3m3.jpg", "3mo.jpg", "4sr.jpg", "598.jpg", "5aj.jpg", "5q4.jpg", "5q5.jpg", "5rp.jpg", "5s5.jpg", "5ua.jpg", "5vp.jpg", "6f1.jpg", "6g9.jpg", "6ja.jpg", "6jk.jpg", "6lh.jpg", "6nn.jpg", "6st.jpg", "6uq.jpg", "71d.jpg", "73r.jpg", "78r.jpg", "793.jpg", "798.jpg", "7bo.jpg", "7hc.jpg", "7hp.jpg", "7jj.jpg", "7kd.jpg", "7kr.jpg", "80kGxlgR1.jpg", "84-HSUBbt.jpg", "88c.jpg", "8a4.jpg", "8gm.jpg", "8lu.jpg", "8o4.jpg", "8pg.jpg", "8pv.jpg", "8q6.jpg", "8tj.jpg", "8tk.jpg", "91i.jpg", "93s.jpg", "984.jpg", "9ev.jpg", "9f1.jpg", "9i3.jpg", "9jb.jpg", "9p5.jpg", "9q8.jpg", "9qc.jpg", "9r1.jpg", "9u9.jpg", "9ue.jpg", "9vd.jpg", "9vo.jpg", "AllGB9l57.jpg", "BborJBuoW.jpg", "BjTEe8vY2.jpg", "CrZtoDsgj.jpg", "DZba-eH_4.jpg", "DdmsQrCAv.jpg", "HYTJQgs2M.jpg", "HksHrR8-9.jpg", "J4Jv10E7O.jpg", "MTU1NDMzNg.jpg", "MTU1ODMyMQ.jpg", "MTU1ODY2MA.jpg", "MTU2OTQzNQ.jpg", "MTU3MTg2MQ.jpg", "MTU4MTkzNg.jpg", "MTUwMzI3Mg.jpg", "MTUxMjI4NQ.jpg", "MTUzNDkzMw.jpg", "MTY0Njk3MQ.jpg", "MTY2ODc2Mg.jpg", "MTY3NTM0OA.jpg", "MTY4MjA2MA.jpg", "MTYyNTY0MA.jpg", "MTc0NDI4MQ.jpg", "MTc1NTg5OA.jpg", "MTc1NjgwOQ.jpg", "MTc2NjQ3Ng.jpg", "MTc4Mzc3MA.jpg", "MTc4NjYzNA.jpg", "MTc5NTYxNg.jpg", "MTcwNTkyNw.jpg", "MTcyNDU0NA.jpg", "MTczNTM4OQ.jpg", "MTg0MDk2Mw.jpg", "MTg0ODgxNQ.jpg", "MTg3MDE3MQ.jpg", "MTg3NzMwMA.jpg", "MTgwMTYzNg.jpg", "MTgzMzAyOA.jpg", "MTgzNjk1Nw.jpg", "MTk0NzMxNw.jpg", "MTk3ODU4MQ.jpg", "MTk4NjA0OQ.jpg", "MTk5OTUzNg.jpg", "MTkwMDAxMw.jpg", "MTkwMTA4Mw.jpg", "MTkyMzMzMQ.jpg", "MTkyNzEyOQ.jpg", "MjA0NDg2Mw.jpg", "MjA1NzA0NQ.jpg", "MjA4NzAwOQ.jpg", "MjAxMDc4OA.jpg", "N-94oSJ5T.jpg", "NoQGHgPl7.jpg", "O-57OLhn7.jpg", "OCoeP14wW.jpg", "OhTkBTPnD.jpg", "PoZIVJ124.jpg", "Rscv6E1c5.jpg", "V00qLe4Gw.jpg", "XWqBv4Dnh.jpg", "_GVSjXZ4i.jpg", "a00.jpg", "a12.jpg", "a1s.jpg", "a2l.jpg", "a2u.jpg", "a4j.jpg", "a51.jpg", "a6d.jpg", "a6f.jpg", "a8e.jpg", "a8n.jpg", "a8v.jpg", "a9v.jpg", "aav.jpg", "ab3.jpg", "abd.jpg", "abt.jpg", "adl.jpg", "afk.jpg", "ah6.jpg", "ajs.jpg", "aju.jpg", "ak0.jpg", "ak7.jpg", "aml.jpg", "apf.jpg", "aqr.jpg", "aqs.jpg", "ar3.jpg", "aru.jpg", "as1.jpg", "ash.jpg", "asj.jpg", "atk.jpg", "au1.jpg", "aua.jpg", "avr.jpg", "b0b.jpg", "b0d.jpg", "b3p.jpg", "b41.jpg", "b5p.jpg", "b6j.jpg", "b75.jpg", "bcf.jpg", "bdl.jpg", "bdm.jpg", "bdp.jpg", "bgr.jpg", "bil.jpg", "bjs.jpg", "bke.jpg", "blp.jpg", "bof.jpg", "bp7.jpg", "bq9.jpg", "bqc.jpg", "bqj.jpg", "bul.jpg", "c1OwKLEdL.jpg", "c1a.jpg", "c1q.jpg", "c2p.jpg", "c3s.jpg", "c5j.jpg", "cd3.jpg", "cdu.jpg", "ce6.jpg", "cea.jpg", "cf9.jpg", "cg3.jpg", "cg5.jpg", "cgh.jpg", "ch8.jpg", "chh.jpg", "chj.jpg", "ck9.jpg", "ckt.jpg", "co0.jpg", "cp4.jpg", "cpb.jpg", "cpe.jpg", "cpk.jpg", "cua3trGPU.jpg", "cv4.jpg", "cv5.jpg", "cvd.jpg", "cvs.jpg", "d45.jpg", "d49.jpg", "d4i.jpg", "d5h.jpg", "d5i.jpg", "d7k.jpg", "d7r.jpg", "d84.jpg", "d99.jpg", "dVujvBqnu.jpg", "daj.jpg", "dbh.jpg", "ddb.jpg", "dff.jpg", "dhp.jpg", "did.jpg", "dj4.jpg", "djm.jpg", "dks.jpg", "dl5.jpg", "dmk.jpg", "dmq.jpg", "dn4GBRons.jpg", "dnm.jpg", "dsa.jpg", "duc.jpg", "dus.jpg", "dv6.jpg", "dvi.jpg", "dvr.jpg", "e09.jpg", "e0a.jpg", "e0sS4bZcP.jpg", "e3j.jpg", "e44.jpg", "e6i.jpg", "e8q.jpg", "e9c.jpg", "edi.jpg", "ef3.jpg", "efk.jpg", "eft.jpg", "fsEMVl7f5.jpg", "h3ima-Zx3.jpg", "h8.jpg", "hTswm_D5S.jpg", "hi.jpg", "i9HsL15nJ.jpg", "j3.jpg", "j8Z2_Alac.jpg", "jd.jpg", "k8.jpg", "o9t0LDcsa.jpg", "oxh-Aab7c.jpg", "pm.jpg", "q2.jpg", "q95bpC4ct.jpg", "ra.jpg", "se.jpg", "uTG1YFzJV.jpg", "udJaUVCHZ.jpg", "uygraw0_D.jpg", "vd.jpg", "vm.jpg", "wFQIf01uy.jpg", "zcErB6rHb.jpg"].map(n => "photos/" + n);
+const MEMES = [["0VVrCBf1l.jpg", "I sense", "a snack being opened"], ["132.jpg", "Dressed up for the party", "nobody told me it was cancelled"], ["1dn.jpg", "You may pet me", "for exactly three seconds"], ["1g5.jpg", "Did you just say", "bath?"], ["1m9.jpg", "Banana for scale", "kitten for cuteness"], ["1ns.jpg", "Five more minutes", "or five more hours"], ["1ts.jpg", "I am fluffy", "and I demand respect"], ["24a.jpg", "Pillow?", "No, it's my brother"], ["24j.jpg", "Black and white photo", "because I'm a serious cat"], ["27f.jpg", "Tiny but", "ready for battle"], ["27l.jpg", "I'm helping", "with your homework"], ["2jh.jpg", "If I fits", "in your shoes, I sits"], ["2n3.jpg", "Hello?", "Is this the snack department?"], ["2q9.jpg", "The box", "was not good enough"], ["2v0.jpg", "Your drink?", "I think you mean MY drink"], ["2xlxL0oI_.jpg", "When the sun hits", "just right"], ["35e.jpg", "New hat", "who dis?"], ["373.jpg", "I put on my bow", "and suddenly I'm royalty"], ["3cf.jpg", "This box", "is now my house"], ["3ej.jpg", "Those eyes", "are judging you"], ["3gv.jpg", "Scratch my chin", "and nobody gets hurt"], ["3kh.jpg", "Comfy", "do not disturb"], ["3mc.jpg", "I drew this", "it's a self-portrait"], ["3vv.jpg", "Me pretending", "to be a pattern"], ["405.jpg", "Leopard?", "No, just a very fancy kitty"], ["4ma.jpg", "You sit up there", "I'll guard down here"], ["4rn.jpg", "Looking up at you", "like I didn't just knock that over"], ["4tm.jpg", "When someone says", "dogs are better"], ["55j.jpg", "Wearing my sweater", "feeling cozy, might nap later"], ["55p.jpg", "Sweater weather", "is my favourite weather"], ["585.jpg", "Knock knock", "I'm coming in whether you like it or not"], ["5os.jpg", "Mondays", "are the worst"], ["5pf.jpg", "Mom", "he's on my side again"], ["5un.jpg", "Hood ride", "best seat in the house"], ["60q.jpg", "Business trip", "very important cat meetings"], ["636.jpg", "My tent", "my rules"], ["6g6.jpg", "Just resting my eyes", "I'm totally still awake"], ["72t.jpg", "Nap buddies", "forever"], ["73t.jpg", "New friend?", "Let's be careful about this"], ["746.jpg", "You're my pillow now", "no take backs"], ["7gn.jpg", "I'm a monkey now", "don't ask questions"], ["7j4.jpg", "Me trying to look scary", "at the doorbell"], ["7mm.jpg", "Playing piano", "one paw at a time"], ["8f6.jpg", "I'll just watch", "and definitely not steal anything"], ["8vm.jpg", "Birthday cat", "where's my cake?"], ["98g.jpg", "Pretty eyes", "and a pretty big appetite"], ["9ci.jpg", "When you sit like a human", "for snacks"], ["9i4.jpg", "Me eating the wrapping paper", "instead of the present"], ["9r0.jpg", "Watch me", "I can walk on shelves"], ["9sg.jpg", "Hello there", "this is my desk now"], ["EXe1GhbrN.jpg", "Grumpy?", "No, just very fluffy"], ["GQ61BDToD.jpg", "Fresh out of the bath", "and very much not happy"], ["IEjdx1W5q.jpg", "Forgot my fur", "at home"], ["KWVenr3Pq.jpg", "Who needs fur", "when you have attitude"], ["KrDYENsA3.jpg", "I conquered the cat tree", "bow down"], ["MTU3MTQ2NQ.jpg", "Sink", "is a bed now"], ["MTUwNTQxOQ.jpg", "Puppy pile", "but make it kittens"], ["MTUxMTkxNg.jpg", "Green eye", "sees everything"], ["MTY0MDIxOA.jpg", "Pick me up", "I dare you"], ["MTY5MDM5MA.jpg", "Peekaboo", "I see you"], ["MTc1OTg3Mg.jpg", "Wrestling time", "ding ding!"], ["MTc5MTMxNw.jpg", "The bathtub", "is my secret hideout"], ["MTcyMTg2Ng.jpg", "So soft", "so sleepy"], ["MTcyMzk1NQ.jpg", "Belly rub?", "It's a trap"], ["MTczMDA4MQ.jpg", "Cuddle squad", "assemble"], ["MTczNDU1Mg.jpg", "I'm wearing a hat", "please don't take pictures"], ["MTczODA3NQ.jpg", "When the nap", "hits too hard"], ["MTgwMDkwNg.jpg", "Hot dog costume", "this is the worst day of my life"], ["MTgwMTA3MA.jpg", "I'm a lobster now", "and I'm not happy about it"], ["MTgxOTYzMg.jpg", "Bird on my head", "I'm too tired to care"], ["MTgyNTE3NQ.jpg", "Sleeping like", "nobody's watching"], ["MTk0MzI2Ng.jpg", "No dogs", "means more room for cats"], ["MTk5MTE2MQ.jpg", "Shh", "dreaming about tuna"], ["MTkwNjY1MQ.jpg", "Floor", "is the best bed"], ["MTkyMjM3MA.jpg", "Your hand is here", "my face is here, let's make this work"], ["MTkyNTIwMA.jpg", "Mom and me", "taking over the street"], ["MTkyOTk5Mw.jpg", "Just took a bath", "send help"], ["MjA1ODk5MA.jpg", "Hello", "I'm your new neighbour"], ["MjA2MTM5NQ.jpg", "This couch", "is mine"], ["MjA2MTgzMw.jpg", "Blanket fort", "do not enter"], ["MjA3MDYzNA.jpg", "When you just woke up", "and you're already tired"], ["MjA4MzcyNw.jpg", "Pillows are", "for cats"], ["MjA4NjA3Nw.jpg", "Sunbathing", "very important business"], ["MjA4ODM4NA.jpg", "Tail up", "ready for adventure"], ["MjAwMDc1MQ.jpg", "Tiny explorer", "big plans"], ["MjAxOTgyNQ.jpg", "Orange you glad", "to see me?"], ["MjAzMzYwMQ.jpg", "The perfect nap spot", "doesn't exi... oh wait"], ["NTsRW30uC.jpg", "My ears", "can hear you opening the fridge"], ["O3F3_S1XN.jpg", "Look at my stripes", "I'm basically a tiger"], ["OUfeISEoi.jpg", "Royal bed", "for royal cat"], ["Rgf43IlSd.jpg", "Feed me", "and no one gets hurt"], ["VQ_DGs4R8.jpg", "Sitting pretty", "waiting for treats"], ["XFhRpYS_D.jpg", "Too fluffy", "to function"], ["Yt4_Z0aDC.jpg", "Black cat", "good luck if you feed me"], ["a22.jpg", "I'm a burrito", "a cat burrito"], ["a3c.jpg", "I'm stuck", "just kidding, I'm comfy"], ["a3m.jpg", "Do not disturb", "nap in progress"], ["a40.jpg", "Climbing the wall", "because I can"], ["a55.jpg", "Bleh", "I'm a cat and I do what I want"], ["a5d.jpg", "When the toy", "attacks back"], ["a5u.jpg", "Working from home", "very busy"], ["a67.jpg", "Two stools", "one very long cat"], ["a6p.jpg", "Box tank", "ready to roll"], ["a7n.jpg", "Ocean view", "cat approved"], ["a8p.jpg", "I'll guard", "your bag forever"], ["a8q.jpg", "Fancy water", "from the fancy river"], ["a8t.jpg", "Stand up", "for your rights"], ["a9g.jpg", "When someone", "steps on your tail"], ["aWVfoSN_K.jpg", "Looking up", "at a really cool bug"], ["aa8.jpg", "Hug me", "but only a little"], ["aab.jpg", "Screen saver", "but it's real"], ["ad4.jpg", "Ultimate nap", "level 100"], ["af6.jpg", "Ball pit", "just for me"], ["ahv.jpg", "Too much cat", "for one blanket"], ["al7.jpg", "I didn't drink your milk", "it was like this when I got here"], ["alt.jpg", "Smol", "but mighty"], ["ao1.jpg", "Dressed to impress", "where's my fish?"], ["ao5.jpg", "Sink squad", "reporting for duty"], ["aob.jpg", "Me trying to", "reach the treat jar"], ["aof.jpg", "Five more minutes", "please"], ["ap6.jpg", "Toilet?", "No, it's my office"], ["ar1.jpg", "When you have", "too many stairs to climb"], ["ar9.jpg", "Is it morning?", "No thanks"], ["ara.jpg", "Roof buddies", "watching the world"], ["arm.jpg", "Paper bag", "best toy ever"], ["at7.jpg", "Watermelon?", "We'll take it from here"], ["b0r.jpg", "Scratching", "and stretching"], ["b1m.jpg", "Ladder?", "I don't need a ladder"], ["b1v.jpg", "Reading time", "for cats only"], ["b4r.jpg", "Guarding the city", "all night long"], ["b6h.jpg", "Hi", "I'm on your table now"], ["b70.jpg", "Big stretch", "ahhh"], ["b77.jpg", "Please", "can I have a treat?"], ["b94.jpg", "Hold me", "like a baby"], ["b9c.jpg", "Too cute", "to be in trouble"], ["bRLzjs5nf.jpg", "Who needs fur", "when you look this good"], ["bbg.jpg", "I'm stuck", "in the chair... again"], ["bc3.jpg", "Look at me", "aren't I perfect?"], ["bcn.jpg", "Kitten parade", "coming through"], ["bdk.jpg", "I see", "a bird"], ["be9.jpg", "Roar", "I'm a lion"], ["beu.jpg", "Exploring", "the jungle"], ["bhl.jpg", "Tap water", "tastes better"], ["bhm.jpg", "Hewwo", "I'm new here"], ["bij.jpg", "Group nap", "nobody move"], ["bj7.jpg", "Window", "TV time"], ["bjm.jpg", "Cream on my head", "I'm a cupcake"], ["bl6.jpg", "Red hoodie", "feeling cozy"], ["bl9.jpg", "Round cat", "is happy cat"], ["bmg.jpg", "Rooftop", "explorer"], ["bnn.jpg", "Dinner is served", "no sharing allowed"], ["boa.jpg", "Me when", "I see a cucumber"], ["boc.jpg", "Fence post", "throne"], ["bqg.jpg", "Scratching post", "is now a pillow"], ["bti.jpg", "Best friends", "even if he's a dog"], ["c09.jpg", "Pure white", "pure attitude"], ["c0v.jpg", "Sneaky", "paw"], ["c23.jpg", "Shelf", "is mine now"], ["c2f.jpg", "Window sill", "stretching"], ["c4e.jpg", "Sun's out", "fur's out"], ["c5q.jpg", "Dreaming", "about the red dot"], ["c84.jpg", "We climb", "together"], ["c8a.jpg", "Hiding", "in plain sight"], ["cb2.jpg", "He said", "I could have the last treat"], ["ccr.jpg", "Snow?", "No thanks"], ["cdo.jpg", "Three kittens", "zero chill"], ["cfj.jpg", "Where does one cat end", "and the other begin?"], ["cfo.jpg", "Ready to ride", "vroom vroom"], ["cft.jpg", "If I fits", "I sits"], ["cha.jpg", "Let me in", "said the cat on the outside"], ["chb.jpg", "Family photo", "nobody is looking at the camera"], ["chg.jpg", "This pillow", "has been claimed"], ["cih.jpg", "Kitten pile", "best pile"], ["cjk.jpg", "Reaching", "for the stars"], ["ckb.jpg", "Grumpy", "but handsome"], ["cmn.jpg", "Teddy bear", "and me"], ["cof.jpg", "Lying in the street", "like nobody's watching"], ["d04.jpg", "Couch potato", "with a soda"], ["d3i.jpg", "When you hear", "the can opener"], ["dbs.jpg", "Wearing your jacket", "it's mine now"], ["de.jpg", "Box", "is my house"], ["deg.jpg", "Help", "I've been caught"], ["dkc.jpg", "Leap", "of faith"], ["dkp.jpg", "Duck walk", "with my buddy"], ["dl4.jpg", "I'll just push this", "off the table"], ["dli.jpg", "Nap", "together, forever"], ["dll.jpg", "Double trouble", "times two"], ["dmi.jpg", "I'm reading", "with my face"], ["dng.jpg", "Jungle", "explorer"], ["dp.jpg", "Shh", "I'm hiding in the box"], ["dpb.jpg", "Robot friend", "best friend"], ["dra.jpg", "I'm typing", "a very important email"], ["drf.jpg", "Ninja", "attack!"], ["dro.jpg", "Who invited", "the dogs?"], ["dsu.jpg", "Upside down", "is the best view"], ["duu.jpg", "Curtain", "climber"], ["e1q.jpg", "Bike", "guardian"], ["e36.jpg", "Just hanging around", "don't mind me"], ["e38.jpg", "Shrimp?", "For me?"], ["e43.jpg", "Paper", "throne"], ["e4j.jpg", "When you see", "the treat bag"], ["e4q.jpg", "Sideways", "selfie"], ["e8k.jpg", "I love you", "but you still need a bath"], ["ea0.jpg", "Tiger", "in training"], ["edc.jpg", "Lying in the grass", "like a starfish"], ["eh1.jpg", "Drawing", "a self-portrait"], ["iY76694gN.jpg", "Tree", "adventures"], ["kc.jpg", "Who", "me? I didn't do anything"], ["nNG4PzUzN.jpg", "This bed", "is my bed now"], ["oxuem0v7U.jpg", "Spotted", "and fabulous"], ["rLKF3Yzcf.jpg", "Leopard print", "is natural"], ["vcoER21JV.jpg", "Found the sunbeam", "not moving until dinner"], ["vjJDjiXQQ.jpg", "Sitting like a statue", "until you give me a treat"], ["wQz67QCme.jpg", "Ready for my walk", "but only to the end of the driveway"]];
+const MEME_PATHS = MEMES.map(m => "memes/" + m[0]);
+const CAP = {};
+MEMES.forEach(m => { CAP["memes/" + m[0]] = [m[1], m[2]]; });
+const SECTIONS = {
+  normal: { list: CATS, text: n => "40 of " + n + " real cat photos. Tap one to see it big, or Shuffle for new cats." },
+  meme: { list: MEME_PATHS, text: n => "40 of " + n + " cat memes. Tap one to see it big, or Shuffle for new memes." }
+};
+let section = "normal";
 const SHOW = 40;
-const src = name => "photos/" + name;
+const ALL = new Set(CATS.concat(MEME_PATHS));
+const lbTop = document.getElementById("lbTop");
+const lbBot = document.getElementById("lbBot");
+const sub = document.getElementById("sub");
 const KEY = "cat-gallery-favs";
 const grid = document.getElementById("grid");
 const favBtn = document.getElementById("favs");
@@ -123,11 +150,11 @@ const boxImg = document.getElementById("boxImg");
 const boxCount = document.getElementById("boxCount");
 
 let favs = [];
-try { favs = (JSON.parse(localStorage.getItem(KEY)) || []).filter(f => typeof f === "string" && CATS.includes(f)); } catch (e) { favs = []; }
+try { favs = (JSON.parse(localStorage.getItem(KEY)) || []).map(f => typeof f === "string" && !f.includes("/") ? "photos/" + f : f).filter(f => ALL.has(f)); } catch (e) { favs = []; }
 const saveFavs = () => { try { localStorage.setItem(KEY, JSON.stringify(favs)); } catch (e) {} favCount.textContent = favs.length; };
 
 let order = [];
-const pick = () => { order = shuffle(CATS.slice()).slice(0, SHOW); };
+const pick = () => { order = shuffle(SECTIONS[section].list.slice()).slice(0, SHOW); };
 let shown = [];
 let onlyFavs = false;
 let cur = -1;
@@ -140,18 +167,29 @@ function render() {
   if (!shown.length) {
     const p = document.createElement("p");
     p.className = "empty";
-    p.textContent = "No favorites yet. Tap the ♡ on a cat you love.";
+    p.textContent = "No favorites yet. Tap the ♡ on a cat or meme you love.";
     grid.append(p);
     return;
   }
   shown.forEach((id, pos) => {
     const card = document.createElement("figure");
-    card.className = "print";
+    card.className = CAP[id] ? "print meme" : "print";
     card.style.setProperty("--r", ((pos * 37) % 7 - 3) * 0.4 + "deg");
     const img = document.createElement("img");
-    img.src = src(id);
-    img.alt = "A cat";
+    const pic = document.createElement("div");
+    pic.className = "pic";
+    img.src = id;
+    img.alt = CAP[id] ? "Cat meme: " + CAP[id].join(" ") : "A cat";
     img.loading = "lazy";
+    pic.append(img);
+    if (CAP[id]) {
+      for (const [cls, txt] of [["top", CAP[id][0]], ["bot", CAP[id][1]]]) {
+        const c = document.createElement("div");
+        c.className = "cap " + cls;
+        c.textContent = txt;
+        pic.append(c);
+      }
+    }
     const heart = document.createElement("button");
     heart.className = "fav";
     heart.setAttribute("aria-label", "Favorite");
@@ -164,17 +202,37 @@ function render() {
       if (onlyFavs) render(); else paint();
     });
     card.addEventListener("click", () => open(pos));
-    card.append(img, heart);
+    card.append(pic, heart);
     grid.append(card);
   });
 }
 
 function open(pos) {
   cur = pos;
-  boxImg.src = src(shown[pos]);
+  const id = shown[pos];
+  boxImg.src = id;
+  lbTop.textContent = CAP[id] ? CAP[id][0] : "";
+  lbBot.textContent = CAP[id] ? CAP[id][1] : "";
+  sizeCaps();
   boxCount.textContent = (pos + 1) + " of " + shown.length;
   box.classList.add("open");
 }
+function sizeCaps() { document.getElementById("lb").style.setProperty("--lbf", Math.max(16, boxImg.clientWidth * 0.085) + "px"); }
+boxImg.addEventListener("load", sizeCaps);
+window.addEventListener("resize", sizeCaps);
+function setSection(s) {
+  section = s;
+  for (const [id, key] of [["tabNormal", "normal"], ["tabMeme", "meme"]]) {
+    const b = document.getElementById(id);
+    b.classList.toggle("on", key === s);
+    b.setAttribute("aria-pressed", key === s);
+  }
+  sub.textContent = SECTIONS[s].text(SECTIONS[s].list.length);
+  if (onlyFavs) { onlyFavs = false; favBtn.classList.remove("on"); favBtn.setAttribute("aria-pressed", false); }
+  pick(); render();
+}
+document.getElementById("tabNormal").addEventListener("click", () => setSection("normal"));
+document.getElementById("tabMeme").addEventListener("click", () => setSection("meme"));
 function close() { box.classList.remove("open"); cur = -1; }
 function step(d) { if (cur >= 0) open((cur + d + shown.length) % shown.length); }
 
@@ -270,9 +328,8 @@ function toggleChat(open) {
 yarnBtn.addEventListener("click", () => toggleChat(!chat.classList.contains("open")));
 document.getElementById("chatClose").addEventListener("click", () => toggleChat(false));
 
-pick();
 saveFavs();
-render();
+setSection("normal");
 }
 </script>
 </body>
