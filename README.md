@@ -21,4 +21,4 @@ It also works as-is on GitHub Pages.
 
 ## Offline version
 
-`cats-offline.html` has 40 real cat photos built into the file, so it works without internet and on iPad.
+The `gallery/` folder holds 456 real cat photos (checked by hand) and a page that shows 40 random ones at a time. Shuffle swaps in a new 40. It also has Yarn, a little chat in the corner that answers three cat questions. It works without internet: open `gallery/index.html`.

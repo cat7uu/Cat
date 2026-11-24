@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cat Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap">
+<style>
+/* VOICE: warm, playful, tender — a scrapbook of cats
+   IDEA: a corkboard of photo prints pinned at slight angles
+   PICTURE: the photos themselves fill the first screen
+   COLOUR and TYPE: warm cream / night cocoa, tangerine accent; Fraunces + Nunito
+   LAYOUT: modest title row with controls, then a full-width masonry of prints */
+:root{color-scheme:light dark;
+  --bg:light-dark(#f6efe6,#1d1714);--ink:light-dark(#2f2420,#f3e9e0);
+  --muted:light-dark(#7d6a60,#b9a79c);--card:light-dark(#fff,#2b2320);
+  --accent:light-dark(#e0662f,#f08a52);--accent-ink:light-dark(#fff,#1d1714);
+  --shadow:light-dark(rgba(60,35,20,.18),rgba(0,0,0,.5))}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Nunito,system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+header{padding:clamp(20px,4vw,44px) max(4vw,16px) 8px;display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:14px;max-width:1400px;margin:0 auto}
+h1{font:600 clamp(32px,5vw,50px)/1.05 Fraunces,Georgia,serif;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:10px}
+button{font:700 16px Nunito,system-ui,sans-serif;min-height:44px;padding:0 20px;border-radius:999px;border:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+button.on,button.primary{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.grid{columns:4 230px;column-gap:18px;padding:18px max(4vw,16px) 40px;max-width:1400px;margin:0 auto}
+.print{break-inside:avoid;margin:0 0 18px;background:var(--card);padding:8px 8px 10px;border-radius:6px;box-shadow:0 3px 14px var(--shadow);position:relative;cursor:zoom-in;transform:rotate(var(--r));transition:transform .2s}
+.print:hover{transform:rotate(0) scale(1.02)}
+.print img{display:block;width:100%;height:auto;border-radius:3px}
+.fav{position:absolute;top:14px;right:14px;min-height:40px;min-width:40px;padding:0;border:none;background:rgba(255,255,255,.92);color:#e0662f;font-size:20px;line-height:40px}
+.fav.on{background:#e0662f;color:#fff}
+.empty{text-align:center;color:var(--muted);padding:40px 16px;column-span:all}
+.box{position:fixed;inset:0;background:rgba(15,10,8,.94);display:none;align-items:center;justify-content:center;z-index:9;touch-action:pan-y}
+.box.open{display:flex}
+.box img{max-width:94vw;max-height:84vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.box button{position:absolute;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:26px;min-width:52px;min-height:52px;padding:0}
+.box .prev{left:12px;top:50%;transform:translateY(-50%)}
+.box .next{right:12px;top:50%;transform:translateY(-50%)}
+.box .close{top:14px;right:14px;font-size:20px}
+.box .count{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:#e8dcd4;font-size:14px}
+footer{text-align:center;color:var(--muted);font-size:14px;padding:0 16px 32px}
+footer a{color:var(--accent)}
+.yarn{position:fixed;right:18px;bottom:18px;z-index:8;width:68px;height:68px;min-height:0;padding:0;border:none;border-radius:50%;background:transparent;filter:drop-shadow(0 4px 10px var(--shadow))}
+.yarn svg{width:100%;height:100%;display:block}
+.yarn:hover svg{transform:rotate(-12deg)}.yarn svg{transition:transform .3s}
+.chat{position:fixed;right:18px;bottom:98px;z-index:8;width:min(360px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 120px));display:none;flex-direction:column;background:var(--card);border-radius:18px;box-shadow:0 10px 36px var(--shadow);overflow:hidden}
+.chat.open{display:flex}
+.chat-top{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 16px;background:var(--accent);color:var(--accent-ink)}
+.chat-top b{font:600 19px Fraunces,Georgia,serif;flex:1}
+.chat-top button{border:none;color:inherit;background:rgba(255,255,255,.2);min-width:40px;min-height:40px;padding:0;font-size:18px}
+.msgs{position:relative;flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:15.5px;line-height:1.45}
+.msg.bot{background:light-dark(#f6efe6,#3a2f2a);border-bottom-left-radius:4px;align-self:flex-start}
+.msg.me{background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;align-self:flex-end}
+.msg p{margin:0 0 8px}.msg p:last-child{margin:0}
+.dots span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:none}30%{transform:translateY(-5px)}}
+.chips{display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px;border-top:1px solid light-dark(#eee3d8,#3a2f2a)}
+.chips button{min-height:44px;padding:8px 14px;border-radius:14px;text-align:left;font-size:15px;line-height:1.3}
+.chips button:disabled{opacity:.5;cursor:default}
+@media(max-width:600px){header{display:block}.controls{margin-top:14px}.grid{columns:2;column-gap:10px;padding-inline:10px}.print{padding:5px 5px 7px;margin-bottom:10px}.fav{top:10px;right:10px}}
+@media(max-width:600px){.chat{right:12px;bottom:92px}.yarn{right:12px;bottom:12px}}
+@media(prefers-reduced-motion:reduce){.print,.yarn svg{transition:none}.dots span{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Cat Gallery</h1>
+    <p>40 of 456 real cat photos. Tap one to see it big, or Shuffle for new cats.</p>
+  </div>
+  <div class="controls">
+    <button id="shuffle" class="primary">Shuffle</button>
+    <button id="favs" aria-pressed="false">♥ Favorites (<span id="favCount">0</span>)</button>
+  </div>
+</header>
+<main id="grid" class="grid"></main>
+<div id="box" class="box" role="dialog" aria-modal="true" aria-label="Cat photo">
+  <button class="prev" aria-label="Previous cat">‹</button>
+  <img id="boxImg" alt="A cat, enlarged">
+  <button class="next" aria-label="Next cat">›</button>
+  <button class="close" aria-label="Close">✕</button>
+  <div class="count" id="boxCount"></div>
+</div>
+<button id="yarn" class="yarn" aria-label="Chat with Yarn" aria-expanded="false">
+  <svg viewBox="0 0 80 80" aria-hidden="true">
+    <path d="M62 62 C70 70, 74 66, 78 74" fill="none" stroke="#c2452a" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="38" cy="38" r="30" fill="#e8563a"/>
+    <circle cx="38" cy="38" r="30" fill="url(#shine)"/>
+    <g fill="none" stroke="#b33a22" stroke-width="2.4" stroke-linecap="round" opacity=".85">
+      <path d="M12 30 C26 20, 50 20, 66 32"/>
+      <path d="M10 40 C26 30, 52 30, 68 44"/>
+      <path d="M14 52 C28 42, 50 42, 62 56"/>
+      <path d="M26 10 C18 26, 20 50, 32 67"/>
+      <path d="M38 8 C30 26, 32 50, 44 68"/>
+      <path d="M52 12 C44 28, 46 48, 56 62"/>
+    </g>
+    <defs><radialGradient id="shine" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+  </svg>
+</button>
+<section id="chat" class="chat" aria-label="Chat with Yarn">
+  <div class="chat-top"><b>Yarn</b><button id="chatClose" aria-label="Close chat">✕</button></div>
+  <div id="msgs" class="msgs" aria-live="polite"></div>
+  <div id="chips" class="chips"></div>
+</section>
+<footer>Photos from <a href="https://thecatapi.com">The Cat API</a>.</footer>
+<script>
+{
+const CATS = ["0THCGrAZj.jpg", "16j.jpg", "1TcC-kiI1.jpg", "1ck.jpg", "1i5.jpg", "1nt.jpg", "1oi.jpg", "1p3.jpg", "1sk.jpg", "264.jpg", "28f.jpg", "28o.jpg", "291.jpg", "29i.jpg", "2bh.jpg", "2ds.jpg", "2ge.jpg", "2iu.jpg", "2k0.jpg", "2m1.jpg", "2mb.jpg", "2mj.jpg", "2n2.jpg", "2re.jpg", "2sd.jpg", "2tf.jpg", "2vu.jpg", "32c.jpg", "35m.jpg", "35q.jpg", "384.jpg", "3ab.jpg", "3av.jpg", "3dv.jpg", "3ep.jpg", "3j4.jpg", "3m3.jpg", "3me.jpg", "3mo.jpg", "447.jpg", "4sr.jpg", "4tp.jpg", "51j.jpg", "598.jpg", "59d.jpg", "5aj.jpg", "5iYq9NmT1.jpg", "5kr.jpg", "5n6.jpg", "5ot.jpg", "5q4.jpg", "5q5.jpg", "5rf.jpg", "5rp.jpg", "5s5.jpg", "5ua.jpg", "5vp.jpg", "6f1.jpg", "6g9.jpg", "6hp.jpg", "6i2.jpg", "6ja.jpg", "6jk.jpg", "6lg.jpg", "6lh.jpg", "6nn.jpg", "6r6.jpg", "6st.jpg", "6tf.jpg", "6uq.jpg", "70c.jpg", "71d.jpg", "73r.jpg", "74m.jpg", "78r.jpg", "793.jpg", "798.jpg", "7Q76qhEAF.jpg", "7bo.jpg", "7hc.jpg", "7hp.jpg", "7jj.jpg", "7kd.jpg", "7kr.jpg", "7lb.jpg", "7nt.jpg", "7ph.jpg", "80kGxlgR1.jpg", "84-HSUBbt.jpg", "88c.jpg", "89p.jpg", "8a4.jpg", "8d5.jpg", "8g8.jpg", "8gm.jpg", "8lu.jpg", "8mn.jpg", "8o4.jpg", "8pg.jpg", "8pv.jpg", "8q6.jpg", "8tj.jpg", "8tk.jpg", "91i.jpg", "93s.jpg", "95g.jpg", "984.jpg", "9ev.jpg", "9f1.jpg", "9fl.jpg", "9i3.jpg", "9ic.jpg", "9jb.jpg", "9l3.jpg", "9l8.jpg", "9p5.jpg", "9q8.jpg", "9qc.jpg", "9ql.jpg", "9qs.jpg", "9r1.jpg", "9u9.jpg", "9ue.jpg", "9ur.jpg", "9v7.jpg", "9vd.jpg", "9vj.jpg", "9vn.jpg", "9vo.jpg", "AllGB9l57.jpg", "BborJBuoW.jpg", "BjTEe8vY2.jpg", "CrZtoDsgj.jpg", "DZba-eH_4.jpg", "DdmsQrCAv.jpg", "HYTJQgs2M.jpg", "HksHrR8-9.jpg", "J4Jv10E7O.jpg", "KLpZzAE_a.jpg", "MTU1NDMzNg.jpg", "MTU1ODMyMQ.jpg", "MTU1ODY2MA.jpg", "MTU2MDcwMw.jpg", "MTU2OTQzNQ.jpg", "MTU3MTg2MQ.jpg", "MTU3NzQ4OA.jpg", "MTU4MTkzNg.jpg", "MTUwMDg4NQ.jpg", "MTUwMTc2MQ.jpg", "MTUwMzI3Mg.jpg", "MTUxMjI4NQ.jpg", "MTUzNDkzMw.jpg", "MTY0Njk3MQ.jpg", "MTY2Nzc2OQ.jpg", "MTY2ODc2Mg.jpg", "MTY3NTM0OA.jpg", "MTY4MjA2MA.jpg", "MTY5NjU4NQ.jpg", "MTYxNTEwNA.jpg", "MTYyNTY0MA.jpg", "MTYzMzQ3NQ.jpg", "MTc0NDI4MQ.jpg", "MTc1NTg5OA.jpg", "MTc1NjgwOQ.jpg", "MTc2NjQ3Ng.jpg", "MTc3MTg4Mg.jpg", "MTc4Mzc3MA.jpg", "MTc4NjYzNA.jpg", "MTc5NTYxNg.jpg", "MTcwNTkyNw.jpg", "MTcyNDU0NA.jpg", "MTczNTM4OQ.jpg", "MTg0MDk2Mw.jpg", "MTg0ODgxNQ.jpg", "MTg1MDU4OQ.jpg", "MTg1NDIwNQ.jpg", "MTg3MDE3MQ.jpg", "MTg3NzE0Mw.jpg", "MTg3NzMwMA.jpg", "MTg4MTUxOA.jpg", "MTgwMTYzNg.jpg", "MTgwNjIwNQ.jpg", "MTgzMzAyOA.jpg", "MTgzMzI1Mw.jpg", "MTgzNjk1Nw.jpg", "MTgzNzY2OA.jpg", "MTk0NzMxNw.jpg", "MTk2NjI0Mw.jpg", "MTk3ODU4MQ.jpg", "MTk4NjA0OQ.jpg", "MTk5NTYyNw.jpg", "MTk5OTUzNg.jpg", "MTkwMDAxMw.jpg", "MTkwMTA4Mw.jpg", "MTkxNDYwMw.jpg", "MTkyMzMzMQ.jpg", "MTkyNzEyOQ.jpg", "MTkzNTY5NA.jpg", "MjA0NDg2Mw.jpg", "MjA1NzA0NQ.jpg", "MjA2MDI2NA.jpg", "MjA4NzAwOQ.jpg", "MjA4Nzc3OA.jpg", "MjAwMzg3Ng.jpg", "MjAxMDc4OA.jpg", "MjAzMTA4Nw.jpg", "N-94oSJ5T.jpg", "NoQGHgPl7.jpg", "O-57OLhn7.jpg", "OCoeP14wW.jpg", "OhTkBTPnD.jpg", "PoZIVJ124.jpg", "RIRLq-8sp.jpg", "Rscv6E1c5.jpg", "Sw_EWWLW-.jpg", "TnwHiS7nO.jpg", "V00qLe4Gw.jpg", "Vb2JphRL3.jpg", "WmBbMJmwn.jpg", "XWqBv4Dnh.jpg", "Znj6KEDRX.jpg", "_GVSjXZ4i.jpg", "_rnhm7vpT.jpg", "a00.jpg", "a12.jpg", "a1s.jpg", "a2l.jpg", "a2u.jpg", "a34.jpg", "a3v.jpg", "a4j.jpg", "a51.jpg", "a66.jpg", "a68.jpg", "a6d.jpg", "a6f.jpg", "a6m.jpg", "a8e.jpg", "a8j.jpg", "a8n.jpg", "a8v.jpg", "a9v.jpg", "aU69p2mTT.jpg", "aav.jpg", "ab3.jpg", "abd.jpg", "abt.jpg", "adl.jpg", "af7.jpg", "afk.jpg", "afm.jpg", "ah6.jpg", "ahp.jpg", "aia.jpg", "aih.jpg", "ajs.jpg", "aju.jpg", "ak0.jpg", "ak7.jpg", "ali.jpg", "aml.jpg", "apf.jpg", "aq3.jpg", "aqr.jpg", "aqs.jpg", "ar3.jpg", "aru.jpg", "as1.jpg", "as8.jpg", "ash.jpg", "asj.jpg", "atk.jpg", "ato.jpg", "au1.jpg", "au2.jpg", "aua.jpg", "aul.jpg", "avr.jpg", "b0b.jpg", "b0d.jpg", "b1j.jpg", "b26.jpg", "b36.jpg", "b3p.jpg", "b41.jpg", "b53.jpg", "b5m.jpg", "b5p.jpg", "b62.jpg", "b66.jpg", "b6j.jpg", "b75.jpg", "b7g.jpg", "b7k.jpg", "b86.jpg", "b88.jpg", "baa.jpg", "bbp.jpg", "bbv.jpg", "bcb.jpg", "bcf.jpg", "bdl.jpg", "bdm.jpg", "bdp.jpg", "bej.jpg", "bet.jpg", "bgr.jpg", "bil.jpg", "bjs.jpg", "bke.jpg", "blp.jpg", "bmp.jpg", "bn9.jpg", "bo2.jpg", "bo3.jpg", "bof.jpg", "bp2.jpg", "bp7.jpg", "bq9.jpg", "bqc.jpg", "bqj.jpg", "brn.jpg", "bth.jpg", "bul.jpg", "c1OwKLEdL.jpg", "c1a.jpg", "c1q.jpg", "c21.jpg", "c2p.jpg", "c3s.jpg", "c5j.jpg", "c8p.jpg", "cd3.jpg", "cds.jpg", "cdu.jpg", "ce6.jpg", "cea.jpg", "cf9.jpg", "cg3.jpg", "cg5.jpg", "cga.jpg", "cgh.jpg", "cgl.jpg", "ch8.jpg", "chh.jpg", "chj.jpg", "ck9.jpg", "ckt.jpg", "cm1.jpg", "cm4.jpg", "cna.jpg", "cnc.jpg", "co0.jpg", "cp4.jpg", "cpb.jpg", "cpe.jpg", "cpk.jpg", "cpu.jpg", "cua3trGPU.jpg", "cv4.jpg", "cv5.jpg", "cvd.jpg", "cvi.jpg", "cvs.jpg", "d1i.jpg", "d45.jpg", "d49.jpg", "d4i.jpg", "d5h.jpg", "d5i.jpg", "d6e.jpg", "d6n.jpg", "d6p.jpg", "d7k.jpg", "d7r.jpg", "d84.jpg", "d99.jpg", "d9t.jpg", "dVujvBqnu.jpg", "daj.jpg", "dbh.jpg", "ddb.jpg", "den.jpg", "dff.jpg", "dhp.jpg", "did.jpg", "dj4.jpg", "djh.jpg", "djm.jpg", "dks.jpg", "dl5.jpg", "dmb.jpg", "dmk.jpg", "dmq.jpg", "dmt.jpg", "dn4GBRons.jpg", "dnm.jpg", "dsa.jpg", "duc.jpg", "dus.jpg", "dv6.jpg", "dvi.jpg", "dvr.jpg", "e09.jpg", "e0a.jpg", "e0sS4bZcP.jpg", "e29.jpg", "e3j.jpg", "e44.jpg", "e6i.jpg", "e70.jpg", "e7n.jpg", "e8q.jpg", "e9c.jpg", "ecv.jpg", "edi.jpg", "ef3.jpg", "ef7.jpg", "efk.jpg", "eft.jpg", "eg7.jpg", "ei1.jpg", "ei6.jpg", "em.jpg", "eo.jpg", "fsEMVl7f5.jpg", "h3ima-Zx3.jpg", "h8.jpg", "hTswm_D5S.jpg", "hi.jpg", "i9HsL15nJ.jpg", "iI8IyNGDg.jpg", "ik.jpg", "j3.jpg", "j8Z2_Alac.jpg", "jd.jpg", "k8.jpg", "kSL4yIF2D.jpg", "lOl0J96On.jpg", "o9t0LDcsa.jpg", "oxh-Aab7c.jpg", "pm.jpg", "q2.jpg", "q95bpC4ct.jpg", "ra.jpg", "s6l9xck-Q.jpg", "se.jpg", "uTG1YFzJV.jpg", "udJaUVCHZ.jpg", "uygraw0_D.jpg", "vVF7hE-Py.jpg", "vd.jpg", "vm.jpg", "wFQIf01uy.jpg", "wiHVRle1m.jpg", "zcErB6rHb.jpg"];
+const SHOW = 40;
+const src = name => "photos/" + name;
+const KEY = "cat-gallery-favs";
+const grid = document.getElementById("grid");
+const favBtn = document.getElementById("favs");
+const favCount = document.getElementById("favCount");
+const box = document.getElementById("box");
+const boxImg = document.getElementById("boxImg");
+const boxCount = document.getElementById("boxCount");
+
+let favs = [];
+try { favs = (JSON.parse(localStorage.getItem(KEY)) || []).filter(f => typeof f === "string" && CATS.includes(f)); } catch (e) { favs = []; }
+const saveFavs = () => { try { localStorage.setItem(KEY, JSON.stringify(favs)); } catch (e) {} favCount.textContent = favs.length; };
+
+let order = [];
+const pick = () => { order = shuffle(CATS.slice()).slice(0, SHOW); };
+let shown = [];
+let onlyFavs = false;
+let cur = -1;
+
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+function render() {
+  shown = onlyFavs ? favs.slice() : order.slice();
+  grid.innerHTML = "";
+  if (!shown.length) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = "No favorites yet. Tap the ♡ on a cat you love.";
+    grid.append(p);
+    return;
+  }
+  shown.forEach((id, pos) => {
+    const card = document.createElement("figure");
+    card.className = "print";
+    card.style.setProperty("--r", ((pos * 37) % 7 - 3) * 0.4 + "deg");
+    const img = document.createElement("img");
+    img.src = src(id);
+    img.alt = "A cat";
+    img.loading = "lazy";
+    const heart = document.createElement("button");
+    heart.className = "fav";
+    heart.setAttribute("aria-label", "Favorite");
+    const paint = () => { const on = favs.includes(id); heart.textContent = on ? "♥" : "♡"; heart.classList.toggle("on", on); heart.setAttribute("aria-pressed", on); };
+    paint();
+    heart.addEventListener("click", e => {
+      e.stopPropagation();
+      favs = favs.includes(id) ? favs.filter(f => f !== id) : favs.concat(id);
+      saveFavs();
+      if (onlyFavs) render(); else paint();
+    });
+    card.addEventListener("click", () => open(pos));
+    card.append(img, heart);
+    grid.append(card);
+  });
+}
+
+function open(pos) {
+  cur = pos;
+  boxImg.src = src(shown[pos]);
+  boxCount.textContent = (pos + 1) + " of " + shown.length;
+  box.classList.add("open");
+}
+function close() { box.classList.remove("open"); cur = -1; }
+function step(d) { if (cur >= 0) open((cur + d + shown.length) % shown.length); }
+
+box.addEventListener("click", e => { if (e.target === box) close(); });
+box.querySelector(".close").addEventListener("click", close);
+box.querySelector(".prev").addEventListener("click", e => { e.stopPropagation(); step(-1); });
+box.querySelector(".next").addEventListener("click", e => { e.stopPropagation(); step(1); });
+document.addEventListener("keydown", e => {
+  if (cur < 0) return;
+  if (e.key === "Escape") close();
+  if (e.key === "ArrowLeft") step(-1);
+  if (e.key === "ArrowRight") step(1);
+});
+
+let sx = null, sy = null;
+box.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+box.addEventListener("touchend", e => {
+  if (sx === null) return;
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
+  else if (dy > 90) close();
+  sx = sy = null;
+});
+
+document.getElementById("shuffle").addEventListener("click", () => {
+  if (onlyFavs) { onlyFavs = false; favBtn.classList.remove("on"); favBtn.setAttribute("aria-pressed", false); }
+  pick(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+favBtn.addEventListener("click", () => {
+  onlyFavs = !onlyFavs;
+  favBtn.classList.toggle("on", onlyFavs);
+  favBtn.setAttribute("aria-pressed", onlyFavs);
+  render();
+});
+
+const QA = [
+  { q: "When were cats first domesticated?", a: [
+    "About 10,000 years ago, in the Near East (the “Fertile Crescent”), when people first started farming.",
+    "Stored grain attracted mice, and the mice attracted wildcats (the African wildcat, Felis lybica). People liked having free pest control, so the cats stuck around. In a way, cats tamed themselves!",
+    "The oldest clue is a cat buried next to a person on the island of Cyprus about 9,500 years ago. Much later, around 4,000 years ago, the ancient Egyptians adored cats." ] },
+  { q: "What is that thing on a cat's belly?", a: [
+    "That's the primordial pouch: a loose, floppy flap of skin and fat that hangs along the belly near the back legs.",
+    "Almost all cats have one, even skinny ones, so it doesn't mean your cat is fat. Big wild cats like lions and tigers have one too.",
+    "Scientists think it helps in three ways: it protects the belly during fights (especially from those bunny-kicks), it lets the body stretch further when running and jumping, and it may store a little extra energy." ] },
+  { q: "Why do cats have whiskers, and why shouldn't we cut them?", a: [
+    "Whiskers are super sensors. Each one is rooted deep in the skin with lots of nerves, so a cat can feel tiny movements in the air and things it touches.",
+    "Cats use them to find their way in the dark, sense things right under their nose (cats can't see very close up), and check if a gap is wide enough to squeeze through. They also show mood: whiskers forward means curious, flat back means scared.",
+    "Cutting them is like taking away a sense. The cat can get confused, bump into things, misjudge jumps, and feel stressed. Whiskers fall out and regrow on their own, so just leave them be!" ] }
+];
+const chat = document.getElementById("chat");
+const yarnBtn = document.getElementById("yarn");
+const msgs = document.getElementById("msgs");
+const chips = document.getElementById("chips");
+let busy = false;
+
+function bubble(who, lines) {
+  const m = document.createElement("div");
+  m.className = "msg " + who;
+  for (const t of lines) { const p = document.createElement("p"); p.textContent = t; m.append(p); }
+  msgs.append(m);
+  msgs.scrollTop = msgs.scrollHeight;
+  return m;
+}
+function ask(item) {
+  if (busy) return;
+  busy = true;
+  chips.querySelectorAll("button").forEach(b => b.disabled = true);
+  bubble("me", [item.q]);
+  const typing = document.createElement("div");
+  typing.className = "msg bot dots";
+  typing.innerHTML = "<span></span><span></span><span></span>";
+  msgs.append(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(() => {
+    typing.remove();
+    const ans = bubble("bot", item.a);
+    msgs.scrollTop = ans.offsetTop - 12;
+    busy = false;
+    chips.querySelectorAll("button").forEach(b => b.disabled = false);
+  }, 900);
+}
+QA.forEach(item => {
+  const b = document.createElement("button");
+  b.textContent = item.q;
+  b.addEventListener("click", () => ask(item));
+  chips.append(b);
+});
+bubble("bot", ["Hi! I'm Yarn 🧶 Ask me a cat question:"]);
+
+function toggleChat(open) {
+  chat.classList.toggle("open", open);
+  yarnBtn.setAttribute("aria-expanded", open);
+}
+yarnBtn.addEventListener("click", () => toggleChat(!chat.classList.contains("open")));
+document.getElementById("chatClose").addEventListener("click", () => toggleChat(false));
+
+pick();
+saveFavs();
+render();
+}
+</script>
+</body>
+</html>
