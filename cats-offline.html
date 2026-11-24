@@ -44,8 +44,28 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .box .count{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:#e8dcd4;font-size:14px}
 footer{text-align:center;color:var(--muted);font-size:14px;padding:0 16px 32px}
 footer a{color:var(--accent)}
+.yarn{position:fixed;right:18px;bottom:18px;z-index:8;width:68px;height:68px;min-height:0;padding:0;border:none;border-radius:50%;background:transparent;filter:drop-shadow(0 4px 10px var(--shadow))}
+.yarn svg{width:100%;height:100%;display:block}
+.yarn:hover svg{transform:rotate(-12deg)}.yarn svg{transition:transform .3s}
+.chat{position:fixed;right:18px;bottom:98px;z-index:8;width:min(360px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 120px));display:none;flex-direction:column;background:var(--card);border-radius:18px;box-shadow:0 10px 36px var(--shadow);overflow:hidden}
+.chat.open{display:flex}
+.chat-top{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 16px;background:var(--accent);color:var(--accent-ink)}
+.chat-top b{font:600 19px Fraunces,Georgia,serif;flex:1}
+.chat-top button{border:none;color:inherit;background:rgba(255,255,255,.2);min-width:40px;min-height:40px;padding:0;font-size:18px}
+.msgs{position:relative;flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:15.5px;line-height:1.45}
+.msg.bot{background:light-dark(#f6efe6,#3a2f2a);border-bottom-left-radius:4px;align-self:flex-start}
+.msg.me{background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;align-self:flex-end}
+.msg p{margin:0 0 8px}.msg p:last-child{margin:0}
+.dots span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:none}30%{transform:translateY(-5px)}}
+.chips{display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px;border-top:1px solid light-dark(#eee3d8,#3a2f2a)}
+.chips button{min-height:44px;padding:8px 14px;border-radius:14px;text-align:left;font-size:15px;line-height:1.3}
+.chips button:disabled{opacity:.5;cursor:default}
 @media(max-width:600px){header{display:block}.controls{margin-top:14px}.grid{columns:2;column-gap:10px;padding-inline:10px}.print{padding:5px 5px 7px;margin-bottom:10px}.fav{top:10px;right:10px}}
-@media(prefers-reduced-motion:reduce){.print{transition:none}}
+@media(max-width:600px){.chat{right:12px;bottom:92px}.yarn{right:12px;bottom:12px}}
+@media(prefers-reduced-motion:reduce){.print,.yarn svg{transition:none}.dots span{animation:none}}
 </style>
 </head>
 <body>
@@ -67,6 +87,27 @@ footer a{color:var(--accent)}
   <button class="close" aria-label="Close">✕</button>
   <div class="count" id="boxCount"></div>
 </div>
+<button id="yarn" class="yarn" aria-label="Chat with Yarn" aria-expanded="false">
+  <svg viewBox="0 0 80 80" aria-hidden="true">
+    <path d="M62 62 C70 70, 74 66, 78 74" fill="none" stroke="#c2452a" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="38" cy="38" r="30" fill="#e8563a"/>
+    <circle cx="38" cy="38" r="30" fill="url(#shine)"/>
+    <g fill="none" stroke="#b33a22" stroke-width="2.4" stroke-linecap="round" opacity=".85">
+      <path d="M12 30 C26 20, 50 20, 66 32"/>
+      <path d="M10 40 C26 30, 52 30, 68 44"/>
+      <path d="M14 52 C28 42, 50 42, 62 56"/>
+      <path d="M26 10 C18 26, 20 50, 32 67"/>
+      <path d="M38 8 C30 26, 32 50, 44 68"/>
+      <path d="M52 12 C44 28, 46 48, 56 62"/>
+    </g>
+    <defs><radialGradient id="shine" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+  </svg>
+</button>
+<section id="chat" class="chat" aria-label="Chat with Yarn">
+  <div class="chat-top"><b>Yarn</b><button id="chatClose" aria-label="Close chat">✕</button></div>
+  <div id="msgs" class="msgs" aria-live="polite"></div>
+  <div id="chips" class="chips"></div>
+</section>
 <footer>Photos from <a href="https://thecatapi.com">The Cat API</a>.</footer>
 <script>
 {
@@ -162,6 +203,67 @@ favBtn.addEventListener("click", () => {
   favBtn.setAttribute("aria-pressed", onlyFavs);
   render();
 });
+
+const QA = [
+  { q: "When were cats first domesticated?", a: [
+    "About 10,000 years ago, in the Near East (the “Fertile Crescent”), when people first started farming.",
+    "Stored grain attracted mice, and the mice attracted wildcats (the African wildcat, Felis lybica). People liked having free pest control, so the cats stuck around. In a way, cats tamed themselves!",
+    "The oldest clue is a cat buried next to a person on the island of Cyprus about 9,500 years ago. Much later, around 4,000 years ago, the ancient Egyptians adored cats." ] },
+  { q: "What is that thing on a cat's belly?", a: [
+    "That's the primordial pouch: a loose, floppy flap of skin and fat that hangs along the belly near the back legs.",
+    "Almost all cats have one, even skinny ones, so it doesn't mean your cat is fat. Big wild cats like lions and tigers have one too.",
+    "Scientists think it helps in three ways: it protects the belly during fights (especially from those bunny-kicks), it lets the body stretch further when running and jumping, and it may store a little extra energy." ] },
+  { q: "Why do cats have whiskers, and why shouldn't we cut them?", a: [
+    "Whiskers are super sensors. Each one is rooted deep in the skin with lots of nerves, so a cat can feel tiny movements in the air and things it touches.",
+    "Cats use them to find their way in the dark, sense things right under their nose (cats can't see very close up), and check if a gap is wide enough to squeeze through. They also show mood: whiskers forward means curious, flat back means scared.",
+    "Cutting them is like taking away a sense. The cat can get confused, bump into things, misjudge jumps, and feel stressed. Whiskers fall out and regrow on their own, so just leave them be!" ] }
+];
+const chat = document.getElementById("chat");
+const yarnBtn = document.getElementById("yarn");
+const msgs = document.getElementById("msgs");
+const chips = document.getElementById("chips");
+let busy = false;
+
+function bubble(who, lines) {
+  const m = document.createElement("div");
+  m.className = "msg " + who;
+  for (const t of lines) { const p = document.createElement("p"); p.textContent = t; m.append(p); }
+  msgs.append(m);
+  msgs.scrollTop = msgs.scrollHeight;
+  return m;
+}
+function ask(item) {
+  if (busy) return;
+  busy = true;
+  chips.querySelectorAll("button").forEach(b => b.disabled = true);
+  bubble("me", [item.q]);
+  const typing = document.createElement("div");
+  typing.className = "msg bot dots";
+  typing.innerHTML = "<span></span><span></span><span></span>";
+  msgs.append(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(() => {
+    typing.remove();
+    const ans = bubble("bot", item.a);
+    msgs.scrollTop = ans.offsetTop - 12;
+    busy = false;
+    chips.querySelectorAll("button").forEach(b => b.disabled = false);
+  }, 900);
+}
+QA.forEach(item => {
+  const b = document.createElement("button");
+  b.textContent = item.q;
+  b.addEventListener("click", () => ask(item));
+  chips.append(b);
+});
+bubble("bot", ["Hi! I'm Yarn 🧶 Ask me a cat question:"]);
+
+function toggleChat(open) {
+  chat.classList.toggle("open", open);
+  yarnBtn.setAttribute("aria-expanded", open);
+}
+yarnBtn.addEventListener("click", () => toggleChat(!chat.classList.contains("open")));
+document.getElementById("chatClose").addEventListener("click", () => toggleChat(false));
 
 shuffle(order);
 saveFavs();
