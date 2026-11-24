@@ -18,3 +18,7 @@ python3 -m http.server 8000
 ```
 
 It also works as-is on GitHub Pages.
+
+## Offline version
+
+`cats-offline.html` has 40 real cat photos built into the file, so it works without internet and on iPad.
