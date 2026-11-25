@@ -51,6 +51,11 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .box .prev{left:12px;top:50%;transform:translateY(-50%)}
 .box .next{right:12px;top:50%;transform:translateY(-50%)}
 .box .close{top:14px;right:14px;font-size:20px}
+.box .save{top:14px;left:14px;font-size:16px;font-weight:700;padding:0 18px;border-radius:999px;background:var(--accent);color:#fff;display:none}
+.box .save.ready{display:block}
+.box .save:disabled{opacity:.6}
+.box .note{position:absolute;top:74px;left:14px;color:#fff;background:rgba(0,0,0,.55);padding:6px 12px;border-radius:10px;font-size:15px;display:none}
+.box .note.show{display:block}
 .box .count{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:#e8dcd4;font-size:14px}
 footer{text-align:center;color:var(--muted);font-size:14px;padding:0 16px 32px}
 footer a{color:var(--accent)}
@@ -100,6 +105,8 @@ footer a{color:var(--accent)}
   <div class="lb" id="lb"><img id="boxImg" alt="A cat, enlarged"><div class="cap top" id="lbTop"></div><div class="cap bot" id="lbBot"></div></div>
   <button class="next" aria-label="Next cat">›</button>
   <button class="close" aria-label="Close">✕</button>
+  <button class="save" id="saveBtn">⬇ Save image</button>
+  <div class="note" id="saveNote" role="status"></div>
   <div class="count" id="boxCount"></div>
 </div>
 <button id="yarn" class="yarn" aria-label="Chat with Yarn" aria-expanded="false">
@@ -233,6 +240,91 @@ function setSection(s) {
 }
 document.getElementById("tabNormal").addEventListener("click", () => setSection("normal"));
 document.getElementById("tabMeme").addEventListener("click", () => setSection("meme"));
+const saveBtn = document.getElementById("saveBtn");
+const saveNote = document.getElementById("saveNote");
+let downloads = null;
+let noteTimer = 0;
+function note(msg) {
+  saveNote.textContent = msg;
+  saveNote.classList.add("show");
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => saveNote.classList.remove("show"), 3000);
+}
+if (window.claude && window.claude.use) {
+  window.claude.use("downloads").then(d => { downloads = d; if (d) saveBtn.classList.add("ready"); }).catch(() => {});
+}
+function wrapLines(ctx, text, maxW) {
+  const words = text.toUpperCase().split(" ");
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+async function makeImage(id) {
+  let img;
+  try {
+    const r = await fetch(id);
+    if (!r.ok) throw new Error("fetch");
+    img = await createImageBitmap(await r.blob());
+  } catch (e) {
+    img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = id;
+    await img.decode();
+  }
+  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const cap = CAP[id];
+  if (cap) {
+    const size = Math.round(W * 0.085);
+    try { await document.fonts.load(size + "px Anton"); } catch (e) {}
+    ctx.font = size + 'px Anton, Impact, "Arial Narrow Bold", sans-serif';
+    ctx.textAlign = "center";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(3, size * 0.16);
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = "#fff";
+    const lh = size * 1.05;
+    const draw = (lines, y0) => lines.forEach((l, i) => { const y = y0 + i * lh; ctx.strokeText(l, W / 2, y); ctx.fillText(l, W / 2, y); });
+    ctx.textBaseline = "top";
+    draw(wrapLines(ctx, cap[0], W * 0.92), H * 0.03);
+    const bot = wrapLines(ctx, cap[1], W * 0.92);
+    ctx.textBaseline = "bottom";
+    draw(bot, H * 0.96 - (bot.length - 1) * lh);
+  }
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("no image")), "image/jpeg", 0.92));
+}
+window.makeImage = makeImage;
+function fileName(id) {
+  const base = CAP[id] ? CAP[id].join(" ") : "cat photo " + id.split("/").pop().replace(/\.jpg$/, "");
+  return base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + ".jpg";
+}
+saveBtn.addEventListener("click", async e => {
+  e.stopPropagation();
+  if (!downloads || cur < 0) return;
+  const id = shown[cur];
+  saveBtn.disabled = true;
+  try {
+    const blob = await makeImage(id);
+    await downloads.save({ filename: fileName(id), data: blob });
+    note("Saved!");
+  } catch (err) {
+    const code = err && err.code;
+    if (code === "declined") note("Not saved.");
+    else if (code === "rate_limited") note("One moment, then try again.");
+    else if (code === "host_unavailable") note("Saving doesn't work in this app. Open the page in a browser to save.");
+    else note("Couldn't save this one. Try again.");
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
 function close() { box.classList.remove("open"); cur = -1; }
 function step(d) { if (cur >= 0) open((cur + d + shown.length) % shown.length); }
 
